@@ -18,6 +18,9 @@ public class EntityLocker<I> {
     }
 
     public boolean lock(I entityId, long millis) {
+        if (globalLock.isLocked()) {
+            return false;
+        }
         ReentrantLock lock = getLock(entityId);
         try {
             return lock.tryLock(millis, TimeUnit.MILLISECONDS);
@@ -28,19 +31,15 @@ public class EntityLocker<I> {
         }
     }
 
-    public boolean takeGlobalLock(long millis) {
-        try {
-            boolean lock;
-            if (millis < 0) {
-                globalLock.lock();
-                lock = true;
-            } else {
-                lock = globalLock.tryLock(millis, TimeUnit.MILLISECONDS);
-            }
-            return lock;
-        } catch (InterruptedException e) {
-            throw new ThreadExecutionException(e);
-        }
+    public boolean takeGlobalLock() {
+        globalLock.lock();
+        releaseAllLocks();
+        return true;
+    }
+
+    private void releaseAllLocks() {
+        locksMap.values().forEach(ReentrantLock::lock);
+        locksMap.keySet().forEach(this::unlock);
     }
 
     public void unlockGlobal() {

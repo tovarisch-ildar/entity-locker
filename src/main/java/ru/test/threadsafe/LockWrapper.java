@@ -45,7 +45,7 @@ public class LockWrapper<V, T> {
             throw new BadEntityException();
         }
 
-        if (entityLocker.takeGlobalLock(millis)) {
+        if (entityLocker.takeGlobalLock()) {
             consumer.accept(entity);
         }
         entityLocker.unlockGlobal();
